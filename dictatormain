@@ -1,0 +1,173 @@
+-- لود کردن Rayfield
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+-- تنظیمات پیشفرض
+local settings = {
+    esp = {
+        Leader = {enabled = false, color = Color3.fromRGB(255, 0, 0)},
+        Party = {enabled = false, color = Color3.fromRGB(0, 255, 0)},
+        Police = {enabled = false, color = Color3.fromRGB(0, 0, 255)},
+        Doctor = {enabled = false, color = Color3.fromRGB(255, 255, 0)},
+    },
+    fov = {enabled = false, radius = 150, color = Color3.fromRGB(0, 255, 0)},
+    aimLock = {enabled = false}
+}
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Rayfield Window
+local Window = Rayfield:CreateWindow({
+    Name = "Dictator ESP/Aimbot",
+    LoadingTitle = "Made by YasinPersia",
+    LoadingSubtitle = "Made by YasinPersia",
+    Theme = "Default",
+    ToggleUIKeybind = "K"
+})
+
+local Tab = Window:CreateTab("Main Controls", 4483362458)
+
+-- ساخت توگل و کلرپیکر برای هر تیم
+for teamName, cfg in pairs(settings.esp) do
+    Tab:CreateToggle({
+        Name = "ESP " .. teamName,
+        CurrentValue = cfg.enabled,
+        Callback = function(state)
+            settings.esp[teamName].enabled = state
+        end
+    })
+    Tab:CreateColorPicker({
+        Name = teamName .. " Color",
+        Color = cfg.color,
+        Callback = function(color)
+            settings.esp[teamName].color = color
+        end
+    })
+end
+
+-- FOV Controls
+Tab:CreateToggle({
+    Name = "FOV Circle",
+    CurrentValue = settings.fov.enabled,
+    Callback = function(state)
+        settings.fov.enabled = state
+    end
+})
+Tab:CreateSlider({
+    Name = "FOV Radius",
+    Range = {10, 500},
+    Increment = 5,
+    CurrentValue = settings.fov.radius,
+    Suffix = "px",
+    Callback = function(value)
+        settings.fov.radius = value
+    end
+})
+Tab:CreateColorPicker({
+    Name = "FOV Color",
+    Color = settings.fov.color,
+    Callback = function(color)
+        settings.fov.color = color
+    end
+})
+
+-- Aim Lock
+Tab:CreateToggle({
+    Name = "Aim Lock",
+    CurrentValue = settings.aimLock.enabled,
+    Callback = function(state)
+        settings.aimLock.enabled = state
+    end
+})
+
+-- Drawing Objects
+local boxes = {}
+for teamName, _ in pairs(settings.esp) do
+    boxes[teamName] = Drawing.new("Square")
+    boxes[teamName].Thickness = 2
+    boxes[teamName].Filled = false
+    boxes[teamName].Visible = false
+end
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Thickness = 1
+fovCircle.NumSides = 64
+fovCircle.Filled = false
+fovCircle.Visible = false
+
+-- تابع پیدا کردن نزدیک‌ترین دشمن داخل FOV
+local function getClosestPlayerInFOV()
+    local mousePos = UserInputService:GetMouseLocation()
+    local closest, dist = nil, settings.fov.radius
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") and p.Team ~= LocalPlayer.Team then
+            local headPos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            if onScreen then
+                local d = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
+                if d < dist then closest, dist = p, d end
+            end
+        end
+    end
+    return closest
+end
+
+-- Input Events برای Aim Lock
+local aiming = false
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 and settings.fov.enabled and settings.aimLock.enabled then
+        aiming = true
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aiming = false
+    end
+end)
+
+-- Loop اصلی برای ESP، FOV و Aim Lock
+RunService.RenderStepped:Connect(function()
+    -- ESP
+    for teamName, box in pairs(boxes) do
+        local cfg = settings.esp[teamName]
+        if cfg.enabled then
+            local found = false
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Team and p.Team.Name == teamName and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local pos, onScreen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                    if onScreen then
+                        box.Color = cfg.color
+                        local size = Vector2.new(30, 50)
+                        box.Size = size
+                        box.Position = Vector2.new(pos.X - size.X/2, pos.Y - size.Y/2)
+                        box.Visible = true
+                        found = true
+                        break
+                    end
+                end
+            end
+            if not found then box.Visible = false end
+        else
+            box.Visible = false
+        end
+    end
+
+    -- FOV Circle
+    fovCircle.Visible = settings.fov.enabled
+    if fovCircle.Visible then
+        fovCircle.Color = settings.fov.color
+        fovCircle.Radius = settings.fov.radius
+        fovCircle.Position = UserInputService:GetMouseLocation()
+    end
+
+    -- Aim Lock
+    if aiming then
+        local target = getClosestPlayerInFOV()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+end)
