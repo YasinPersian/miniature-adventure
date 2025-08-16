@@ -1,6 +1,30 @@
 -- لود کردن Rayfield
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
+-- سیستم کلید
+KeySystem = true -- برای فعال کردن Key System
+local KeySettings = {
+    Title = "Dictator key system",
+    Subtitle = "Key system",
+    Note = "Get your key here: https://lootdest.org/s?xy2EUcLt",
+    FileName = "Key",
+    SaveKey = false,
+    GrabKeyFromSite = true,
+    Key = "https://pastebin.com/raw/pYTSfHpC"
+}
+
+-- ساخت پنجره
+local Window = Rayfield:CreateWindow({
+    Name = "Dictator ESP/Aimbot",
+    LoadingTitle = "Made by YasinPersia",
+    LoadingSubtitle = "Made by YasinPersia",
+    Theme = "Default",
+    ToggleUIKeybind = Enum.KeyCode.K,
+    KeySystem = KeySystem,
+    KeySettings = KeySettings
+})
+
+-------------------------------------------------
 -- تنظیمات پیشفرض
 local settings = {
     esp = {
@@ -13,22 +37,15 @@ local settings = {
     aimLock = {enabled = false}
 }
 
--- Services
+-- سرویس‌ها
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Rayfield Window
-local Window = Rayfield:CreateWindow({
-    Name = "Dictator ESP/Aimbot",
-    LoadingTitle = "Made by YasinPersia",
-    LoadingSubtitle = "Made by YasinPersia",
-    Theme = "Default",
-    ToggleUIKeybind = "K"
-})
-
+-------------------------------------------------
+-- تب اصلی
 local Tab = Window:CreateTab("Main Controls", 4483362458)
 
 -- ساخت توگل و کلرپیکر برای هر تیم
@@ -84,6 +101,7 @@ Tab:CreateToggle({
     end
 })
 
+-------------------------------------------------
 -- Drawing Objects
 local boxes = {}
 for teamName, _ in pairs(settings.esp) do
@@ -99,7 +117,7 @@ fovCircle.NumSides = 64
 fovCircle.Filled = false
 fovCircle.Visible = false
 
--- تابع پیدا کردن نزدیک‌ترین دشمن داخل FOV
+-- پیدا کردن نزدیک‌ترین دشمن داخل FOV
 local function getClosestPlayerInFOV()
     local mousePos = UserInputService:GetMouseLocation()
     local closest, dist = nil, settings.fov.radius
@@ -115,7 +133,7 @@ local function getClosestPlayerInFOV()
     return closest
 end
 
--- Input Events برای Aim Lock
+-- کنترل موس برای Aim Lock
 local aiming = false
 UserInputService.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton2 and settings.fov.enabled and settings.aimLock.enabled then
